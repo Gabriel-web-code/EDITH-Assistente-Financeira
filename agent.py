@@ -209,7 +209,8 @@ def obter_cliente():
     chave = os.getenv("GROQ_API_KEY")
     if not chave:
         raise RuntimeError(
-            "GROQ_API_KEY não encontrada. Crie o arquivo .env com a chave da Groq."
+            "GROQ_API_KEY não encontrada. Crie o arquivo .env com a chave da Groq "
+            "ou configure o segredo GROQ_API_KEY na hospedagem."
         )
     return Groq(api_key=chave)
 

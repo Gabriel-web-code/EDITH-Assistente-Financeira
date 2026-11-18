@@ -1,3 +1,4 @@
+import os
 from datetime import date, datetime
 
 import streamlit as st
@@ -8,6 +9,14 @@ import agent
 import db
 
 load_dotenv()
+
+try:
+    if not os.getenv("GROQ_API_KEY") and "GROQ_API_KEY" in st.secrets:
+        os.environ["GROQ_API_KEY"] = str(st.secrets["GROQ_API_KEY"])
+    if not os.getenv("GROQ_MODEL") and "GROQ_MODEL" in st.secrets:
+        agent.MODELO = str(st.secrets["GROQ_MODEL"])
+except Exception:
+    pass
 
 MESES = [
     "Janeiro",
