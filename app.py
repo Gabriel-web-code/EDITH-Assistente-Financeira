@@ -8,6 +8,7 @@ from groq import APIError
 import agent
 import db
 import sessao
+import tabelas
 
 load_dotenv()
 
@@ -194,6 +195,114 @@ header[data-testid="stHeader"] {
 
 [data-testid="stChatMessage"] tbody tr:nth-child(even) {
     background: rgba(255, 255, 255, 0.03);
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.tabela-edith {
+    margin: 0.85rem 0 0.35rem 0;
+}
+
+.tabela-edith table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 0.92rem;
+}
+
+.tabela-edith th {
+    text-align: left;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9a9aa0;
+    font-weight: 600;
+    padding: 0.55rem 0.7rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tabela-edith td {
+    padding: 0.6rem 0.7rem;
+    color: #f5f5f7;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-wrap: anywhere;
+}
+
+.tabela-edith tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.tabela-edith tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.tabela-edith .col-valor {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.tabela-edith .col-data {
+    color: #c7c7cc;
+    white-space: nowrap;
+}
+
+.tabela-edith .cartoes {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .tabela-edith table {
+        display: none !important;
+    }
+
+    .tabela-edith .cartoes {
+        display: block !important;
+    }
+
+    .cartao-edith {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 14px;
+        padding: 0.7rem 0.85rem;
+        margin-bottom: 0.55rem;
+    }
+
+    .cartao-edith:last-child {
+        margin-bottom: 0;
+    }
+
+    .cartao-edith-topo {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .cartao-edith-titulo {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #ffffff;
+        overflow-wrap: anywhere;
+    }
+
+    .cartao-edith-valor {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #ffffff;
+        white-space: nowrap;
+    }
+
+    .cartao-edith-meta {
+        margin-top: 0.22rem;
+        font-size: 0.78rem;
+        color: #9a9aa0;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
 }
 
 [data-testid="stChatMessageAvatarAssistant"],
@@ -544,6 +653,14 @@ def data_curta(valor):
         return ""
 
 
+def mostrar_mensagem(texto):
+    for tipo, conteudo in tabelas.blocos(texto):
+        if tipo == "html":
+            st.markdown(conteudo, unsafe_allow_html=True)
+        else:
+            st.markdown(conteudo)
+
+
 st.set_page_config(
     page_title="EDITH",
     layout="wide",
@@ -590,7 +707,7 @@ if not historico:
 
 for mensagem in historico:
     with st.chat_message(mensagem["role"]):
-        st.markdown(mensagem["content"])
+        mostrar_mensagem(mensagem["content"])
 
 pergunta = st.chat_input("Registre um gasto ou pergunte sobre o mercado...")
 
@@ -629,7 +746,7 @@ if pergunta:
 
         aviso.empty()
         if resposta:
-            st.markdown(resposta)
+            mostrar_mensagem(resposta)
 
     if resposta:
         db.salvar_mensagem("assistant", resposta, conversa_id)
