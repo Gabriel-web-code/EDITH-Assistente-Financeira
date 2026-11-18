@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Chatbot no terminal",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/chatbot.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Interface Streamlit",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": ["run", "app.py"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}
