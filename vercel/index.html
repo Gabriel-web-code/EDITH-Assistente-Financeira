@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EDITH · Assistente Financeira</title>
+<meta name="description" content="Gestão de gastos, memória permanente e análise de mercado em um único ambiente.">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="EDITH · Assistente Financeira">
+<meta property="og:description" content="Gestão de gastos, memória permanente e análise de mercado em um único ambiente.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050506'/%3E%3Ctext x='32' y='45' font-family='Helvetica,Arial,sans-serif' font-size='34' font-weight='700' fill='%23f5f5f7' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<noscript>Ative o JavaScript para usar a EDITH.</noscript>
+
+<div class="app" id="app">
+  <div class="scrim" data-fechar-menu></div>
+
+  <aside class="sidebar" id="sidebar" aria-label="Painel financeiro">
+    <div class="marca-bloco">
+      <div class="marca">EDITH</div>
+      <div class="marca-sub">Painel financeiro</div>
+    </div>
+    <button class="fechar-menu" type="button" data-fechar-menu aria-label="Fechar painel">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+
+    <div class="secao">Histórico</div>
+    <button class="botao botao-nova" type="button" id="nova-conversa">Nova conversa</button>
+    <div class="historico" id="historico"></div>
+
+    <div class="secao">Painel financeiro</div>
+    <div class="campos">
+      <label class="campo">
+        <span>Mês</span>
+        <select id="mes"></select>
+      </label>
+      <label class="campo">
+        <span>Ano</span>
+        <select id="ano"></select>
+      </label>
+    </div>
+
+    <div class="cards" id="cards"></div>
+    <div class="tabela-area" id="tabela-area"></div>
+
+    <details class="memoria">
+      <summary>Memória</summary>
+      <div class="memoria-lista" id="memoria-lista"></div>
+    </details>
+
+    <div class="acoes">
+      <button class="botao" type="button" id="excluir-conversa">Excluir conversa</button>
+      <button class="botao" type="button" id="limpar-memorias">Limpar memórias</button>
+    </div>
+  </aside>
+
+  <main class="principal">
+    <div class="topo">
+      <button class="icone-topo" type="button" id="abrir-menu" aria-label="Abrir painel" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <div class="topo-marca">EDITH</div>
+    </div>
+
+    <div class="conteudo" id="conteudo">
+      <div class="coluna">
+        <section class="hero">
+          <div class="rotulo">EDITH</div>
+          <h1>Assistente Financeira</h1>
+          <p>Gestão de gastos, memória permanente e análise de mercado em um único ambiente.</p>
+        </section>
+        <div class="conversa" id="conversa" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="composer-area">
+      <form class="composer" id="composer">
+        <label class="oculto" for="mensagem">Mensagem para a EDITH</label>
+        <textarea id="mensagem" rows="1" placeholder="Registre um gasto ou pergunte sobre o mercado..." autocomplete="off" spellcheck="false"></textarea>
+        <button class="enviar" type="submit" id="enviar" aria-label="Enviar mensagem">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </form>
+      <div class="rodape">A EDITH pode cometer erros. Confira informações importantes.</div>
+    </div>
+  </main>
+</div>
+
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
