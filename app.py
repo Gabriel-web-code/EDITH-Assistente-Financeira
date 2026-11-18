@@ -17,6 +17,8 @@ try:
         os.environ["GROQ_API_KEY"] = str(st.secrets["GROQ_API_KEY"])
     if not os.getenv("GROQ_MODEL") and "GROQ_MODEL" in st.secrets:
         agent.MODELO = str(st.secrets["GROQ_MODEL"])
+    if not os.getenv("GROQ_REASONING_EFFORT") and "GROQ_REASONING_EFFORT" in st.secrets:
+        agent.ESFORCO = str(st.secrets["GROQ_REASONING_EFFORT"])
 except Exception:
     pass
 
@@ -200,6 +202,32 @@ header[data-testid="stHeader"] {
 [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
     max-width: 100%;
     overflow-wrap: anywhere;
+}
+
+[data-testid="stChatMessage"] [data-testid="stVerticalBlock"] {
+    gap: 0.35rem !important;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p {
+    margin: 0 0 0.55rem 0;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p:last-child {
+    margin-bottom: 0;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] ul,
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] ol {
+    margin: 0 0 0.55rem 0;
+    padding-left: 1.15rem;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] li {
+    margin-bottom: 0.2rem;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] > div > :first-child {
+    margin-top: 0;
 }
 
 .tabela-edith {
@@ -706,8 +734,13 @@ if not historico:
         )
 
 for mensagem in historico:
+    texto = mensagem["content"] or ""
+    if mensagem["role"] == "assistant":
+        texto = agent.resposta_para_exibir(texto)
+    if not texto.strip():
+        continue
     with st.chat_message(mensagem["role"]):
-        mostrar_mensagem(mensagem["content"])
+        mostrar_mensagem(texto)
 
 pergunta = st.chat_input("Registre um gasto ou pergunte sobre o mercado...")
 

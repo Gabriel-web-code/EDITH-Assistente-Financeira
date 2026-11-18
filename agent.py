@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import date
 
 from dotenv import load_dotenv
@@ -11,6 +12,60 @@ import web
 load_dotenv()
 
 MODELO = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+ESFORCO = os.getenv("GROQ_REASONING_EFFORT", "low")
+MAX_TOKENS = 3072
+FALLBACK = "Não consegui concluir a resposta agora. Pode repetir o pedido, por favor?"
+
+AVISO_FORMATO = (
+    "Sua última mensagem saiu corrompida: veio cheia de reticências, linhas vazias "
+    "repetidas e caracteres invisíveis. Responda de novo apenas com a resposta final, "
+    "em português, sem reticências, sem repetir linhas e sem comentar o erro."
+)
+
+_INVISIVEIS = re.compile("[\u200b\u200c\u200d\u2060\ufeff]")
+_ESPACOS_ESPECIAIS = re.compile("[\u00a0\u202f\u2007\u2009\u200a]")
+_TOKENS_HARMONY = re.compile(r"<\|[^|>]{0,40}\|>")
+_BLOCO_RACIOCINIO = re.compile(
+    r"<(analysis|thought|reasoning|scratchpad)>.*?</\1>", re.S | re.I
+)
+_LINHA_SO_SIMBOLOS = re.compile(r"^[\s.…·•\-–—_*|>#~`\"'()\[\]{}?!¿¡:;,/+\\=<>]+$")
+_MARCAS_RACIOCINIO = (
+    "despawn",
+    "garbled",
+    "oops",
+    "it seems",
+    "it appears",
+    "we need",
+    "we already",
+    "we must",
+    "we should",
+    "the user",
+    "the assistant",
+    "likely",
+    "let's",
+    "i should",
+    "i need",
+)
+_PREFIXOS_LIXO = _MARCAS_RACIOCINIO + (
+    "sorry",
+    "i'm sorry",
+    "desculpe, parece",
+    "desculpe, ocorreu",
+    "desculpe ocorreu",
+    "--- end",
+    "okay",
+    "ok,",
+    "ok…",
+    "the ",
+    "we ",
+    "it ",
+    "need to",
+    "let me",
+    "first,",
+    "then,",
+    "now,",
+)
+_PALAVRAS_LIXO = {"the", "we", "it", "i", "and", "so", "okay", "ok", "hmm", "wait"}
 CATEGORIAS = [
     "Alimentação",
     "Moradia",
@@ -270,23 +325,166 @@ def _executar_ferramenta(nome, argumentos):
         return _json({"erro": str(erro)})
 
 
+def limpar_resposta(texto):
+    """Remove o lixo que o modelo às vezes despeja antes da resposta final.
+
+    Quando o orçamento de tokens acaba, o modelo passa a repetir reticências,
+    caracteres invisíveis e linhas em branco. Isso virava um bloco gigante e
+    vazio na conversa. Aqui as linhas de lixo são descartadas e os espaços
+    repetidos são reduzidos.
+    """
+    if not texto:
+        return ""
+
+    if "<|channel|>final<|message|>" in texto:
+        texto = texto.rsplit("<|channel|>final<|message|>", 1)[1]
+    texto = _BLOCO_RACIOCINIO.sub("", texto)
+    texto = _TOKENS_HARMONY.sub("", texto)
+
+    saida = []
+    for linha in texto.splitlines():
+        if _INVISIVEIS.search(linha):
+            continue
+        linha = _ESPACOS_ESPECIAIS.sub(" ", linha).rstrip("\r")
+        limpa = linha.strip()
+        if not limpa:
+            saida.append("")
+            continue
+        if "|" in limpa:
+            saida.append(linha)
+            continue
+        if _LINHA_SO_SIMBOLOS.match(limpa):
+            continue
+        if limpa.lower().lstrip("-*#> ").startswith(_PREFIXOS_LIXO):
+            continue
+        if limpa.lower().strip(".,!?:;…") in _PALAVRAS_LIXO:
+            continue
+        saida.append(linha)
+
+    final = []
+    for linha in saida:
+        if linha == "" and (not final or final[-1] == ""):
+            continue
+        final.append(linha)
+    while final and final[0] == "":
+        final.pop(0)
+    while final and final[-1] == "":
+        final.pop()
+    return "\n".join(final).strip()
+
+
+def _tem_conteudo(texto):
+    return len(re.sub(r"[^0-9A-Za-zÀ-ÿ]", "", texto or "")) >= 25
+
+
+def resposta_para_exibir(texto):
+    """Limpa uma resposta já gravada antes de mostrá-la no chat."""
+    if not texto:
+        return ""
+    limpo = limpar_resposta(texto)
+    if _degenerada(texto) and not _tem_conteudo(limpo):
+        return ""
+    return limpo
+
+
+def _degenerada(texto):
+    """Detecta resposta corrompida: reticências soltas, raciocínio vazado etc."""
+    if not texto or _INVISIVEIS.search(texto):
+        return True
+    if "..." in texto or "…" in texto:
+        return True
+    if re.search(r"\n[ \t]*\n[ \t]*\n", texto):
+        return True
+
+    minusculo = texto.lower()
+    if any(marcador in minusculo for marcador in _MARCAS_RACIOCINIO):
+        return True
+
+    linhas = [linha.strip() for linha in texto.splitlines() if linha.strip()]
+    if len(linhas) < 2 and len(texto.strip()) < 40:
+        return True
+
+    lixo = sum(1 for linha in linhas if _LINHA_SO_SIMBOLOS.match(linha))
+    return bool(linhas) and lixo / len(linhas) > 0.15
+
+
+def _moeda(valor):
+    try:
+        return "R$ " + f"{float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except (TypeError, ValueError):
+        return str(valor)
+
+
+def _data_br(valor):
+    try:
+        return date.fromisoformat(str(valor)).strftime("%d/%m/%Y")
+    except (TypeError, ValueError):
+        return str(valor)
+
+
+def _confirmacao_das_ferramentas(mensagens):
+    """Monta uma confirmação a partir dos lançamentos já gravados na conversa."""
+    registros = []
+    for mensagem in mensagens:
+        if mensagem.get("role") != "tool":
+            continue
+        try:
+            dados = json.loads(mensagem.get("content") or "{}")
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(dados, dict) and dados.get("status") == "registrado":
+            registros.append(dados)
+    if not registros:
+        return ""
+
+    titulo = (
+        "Despesa registrada com sucesso:"
+        if len(registros) == 1
+        else "Despesas registradas com sucesso:"
+    )
+    itens = [
+        f"- **Descrição:** {dados.get('descricao', 'Despesa')}  \n"
+        f"  **Categoria:** {dados.get('categoria', 'Outros')}  \n"
+        f"  **Data:** {_data_br(dados.get('data'))}  \n"
+        f"  **Valor:** {_moeda(dados.get('valor'))}"
+        for dados in registros
+    ]
+    return titulo + "\n\n" + "\n\n".join(itens)
+
+
 def responder(historico, ao_usar_ferramenta=None):
     cliente = obter_cliente()
     mensagens = [{"role": "system", "content": montar_sistema()}] + list(historico)
+    extras = {"reasoning_effort": ESFORCO} if "gpt-oss" in MODELO else {}
+    tentativas_formato = 0
 
     for _ in range(6):
         resposta = cliente.chat.completions.create(
             model=MODELO,
             messages=mensagens,
             tools=FERRAMENTAS,
-            tool_choice="auto",
+            tool_choice="none" if tentativas_formato else "auto",
             temperature=0.3,
-            max_completion_tokens=2048,
+            max_completion_tokens=MAX_TOKENS,
+            **extras,
         )
         mensagem = resposta.choices[0].message
 
         if not mensagem.tool_calls:
-            return mensagem.content or ""
+            bruto = mensagem.content or ""
+            corrompida = _degenerada(bruto)
+            if corrompida and tentativas_formato < 2:
+                tentativas_formato += 1
+                mensagens.append({"role": "assistant", "content": bruto})
+                mensagens.append({"role": "system", "content": AVISO_FORMATO})
+                continue
+
+            texto = limpar_resposta(bruto)
+            if corrompida:
+                confirmacao = _confirmacao_das_ferramentas(mensagens)
+                if confirmacao:
+                    return confirmacao
+            return texto if _tem_conteudo(texto) else FALLBACK
 
         mensagens.append(
             {
@@ -322,4 +520,4 @@ def responder(historico, ao_usar_ferramenta=None):
                 }
             )
 
-    return "Não foi possível concluir a solicitação. Tente novamente com mais detalhes."
+    return FALLBACK
