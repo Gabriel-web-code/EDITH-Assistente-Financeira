@@ -638,7 +638,13 @@ if pergunta:
 with st.sidebar:
     st.markdown('<div class="marca">EDITH</div>', unsafe_allow_html=True)
     st.markdown('<div class="marca-sub">Painel financeiro</div>', unsafe_allow_html=True)
-    st.caption("Sessão privada: seus lançamentos, memórias e conversas ficam apenas nesta aba.")
+    if sessao.modo_local():
+        st.caption("Modo local: seus dados ficam salvos no arquivo edith.db.")
+    else:
+        st.caption(
+            "Sessão privada: seus lançamentos, memórias e conversas ficam apenas "
+            "nesta aba e começam vazios."
+        )
 
     st.markdown('<div class="secao">Histórico</div>', unsafe_allow_html=True)
 
@@ -730,11 +736,12 @@ with st.sidebar:
             db.limpar_memorias()
             st.rerun()
 
-        if st.button(
-            "Apagar meus dados",
-            width="stretch",
-            help="Remove desta sessão as conversas, os gastos e as memórias.",
-        ):
-            sessao.apagar_banco_da_sessao()
-            st.session_state.pop("conversa_id", None)
-            st.rerun()
+        if not sessao.modo_local():
+            if st.button(
+                "Apagar meus dados",
+                width="stretch",
+                help="Remove desta sessão as conversas, os gastos e as memórias.",
+            ):
+                sessao.apagar_banco_da_sessao()
+                st.session_state.pop("conversa_id", None)
+                st.rerun()

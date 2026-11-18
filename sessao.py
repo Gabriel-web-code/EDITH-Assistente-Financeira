@@ -1,9 +1,12 @@
 """Cofre privado por visitante.
 
-Cada aba do navegador recebe um banco SQLite novo, criado em uma pasta
-temporária e ligado apenas àquela sessão do Streamlit. O `edith.db` do
+Na internet, cada aba do navegador recebe um banco SQLite novo, criado em uma
+pasta temporária e ligado apenas àquela sessão do Streamlit. O `edith.db` do
 repositório nunca é aberto, então o site sempre começa vazio e cada pessoa
 constrói os próprios gastos, memórias e conversas.
+
+No seu computador (localhost) o comportamento continua o de sempre: o app usa
+o `edith.db` da pasta do projeto e os dados sobrevivem ao fechar o navegador.
 """
 
 import os
@@ -18,6 +21,36 @@ import db
 PREFIXO = "edith_cofre_"
 VALIDADE_SEGUNDOS = 12 * 60 * 60
 CHAVE = "edith_banco"
+CHAVE_MODO = "edith_modo_local"
+HOSTS_LOCAIS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+
+
+def _host_da_requisicao():
+    try:
+        host = st.context.headers.get("Host", "") or ""
+    except Exception:
+        return ""
+    host = host.strip().lower()
+    if host.startswith("["):
+        return host[1 : host.find("]")] if "]" in host else host
+    return host.split(":")[0]
+
+
+def _detectar_modo_local():
+    if os.getenv("EDITH_DB"):
+        return True
+    if os.getenv("EDITH_LOCAL", "").strip().lower() in {"1", "true", "sim", "yes"}:
+        return True
+    # Sem cabeçalho de requisição (testes, chamadas internas), assume o modo
+    # seguro: banco temporário por sessão.
+    return _host_da_requisicao() in HOSTS_LOCAIS
+
+
+def modo_local():
+    """True quando o app roda na própria máquina do dono."""
+    if CHAVE_MODO not in st.session_state:
+        st.session_state[CHAVE_MODO] = _detectar_modo_local()
+    return bool(st.session_state[CHAVE_MODO])
 
 
 def _limpar_antigos():
@@ -49,7 +82,13 @@ def _marcar_ativo(caminho):
 
 
 def banco_da_sessao():
-    """Devolve o banco exclusivo desta sessão, criando-o na primeira visita."""
+    """Devolve o banco desta sessão, criando um cofre vazio na primeira visita."""
+    if modo_local():
+        db.usar_banco(db.CAMINHO_PADRAO)
+        if not os.path.isfile(db.CAMINHO_PADRAO):
+            db.inicializar()
+        return db.CAMINHO_PADRAO
+
     caminho = st.session_state.get(CHAVE)
 
     if caminho and os.path.isdir(os.path.dirname(caminho)):

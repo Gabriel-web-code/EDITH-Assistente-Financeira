@@ -123,15 +123,15 @@ abertura seguinte demora cerca de um minuto.
 
 O arquivo `sessao.py` resolve o problema de o site abrir com os dados do dono:
 
-1. Na primeira visita, o app cria uma pasta temporária exclusiva
-   (`edith_cofre_...`) e um `edith.db` vazio dentro dela.
+1. Ao abrir o app por um endereço que não seja `localhost`, ele cria uma pasta
+   temporária exclusiva (`edith_cofre_...`) com um `edith.db` vazio dentro.
 2. O caminho fica em `st.session_state`, que é individual por aba do navegador.
 3. O `db.py` guarda esse caminho em uma variável de thread. Cada sessão do
    Streamlit roda em uma thread própria, então uma pessoa nunca lê o banco da outra.
-4. O `edith.db` que está na pasta do projeto não é aberto pelo site. Ele serve
-   apenas para o uso local, no seu computador.
-5. Ao clicar em **Apagar meus dados**, a pasta da sessão é removida e um cofre
-   novo e vazio é criado na hora.
+4. O `edith.db` que está na pasta do projeto só é usado quando o app roda na
+   sua própria máquina (`localhost`). No site, ele jamais é aberto.
+5. Ao clicar em **Apagar meus dados** (botão que só aparece no site), a pasta da
+   sessão é removida e um cofre novo e vazio é criado na hora.
 6. Pastas de sessões encerradas há mais de 12 horas são apagadas automaticamente.
 
 Consequências práticas:
@@ -141,6 +141,9 @@ Consequências práticas:
   ficam apenas na aba em que foram criados.
 - O servidor não guarda nada de forma permanente: reiniciar o app também apaga
   os cofres temporários.
+- No seu computador, nada muda: o `edith.db` continua guardando seus dados entre
+  execuções. Se precisar forçar esse modo em outro endereço, defina a variável
+  `EDITH_LOCAL=1` antes de iniciar o app.
 
 ## Exemplos de uso
 
@@ -169,9 +172,7 @@ backup, copie esse arquivo. Para começar do zero, apague o arquivo ou use os
 botões do painel. Ele não vai para o Git.
 
 No site, o arquivo fica em uma pasta temporária do servidor, uma por aba, e é
-descartado quando a sessão termina. Nada é compartilhado entre visitantes.
-
-## Como funciona
+descartado quando a sessão termina. Nada é compartilhado entre visitantes.## Como funciona
 
 1. `agent.py` monta o prompt fixo da EDITH com a data atual e as memórias salvas.
 2. O modelo recebe ferramentas e decide quando usá-las.

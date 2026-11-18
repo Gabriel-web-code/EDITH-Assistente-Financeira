@@ -118,6 +118,10 @@ cria uma pasta temporaria propria, com um banco vazio, gerenciada pelo
 arquivo sessao.py. Ao fechar ou recarregar a pagina, esse banco e descartado.
 Assim, nenhum visitante ve os gastos, as memorias ou as conversas de outro.
 
+No seu computador (endereco localhost), nada muda: o app continua usando o
+edith.db da pasta do projeto. Para forcar esse comportamento em outro
+endereco, defina EDITH_LOCAL=1 antes de iniciar o app.
+
 
 VS CODE
 -------
@@ -176,7 +180,7 @@ edith.db; o .gitignore ja bloqueia os dois.
 
 Privacidade no site:
 - Cada visitante abre com banco vazio (sem gastos, memorias ou conversas).
-- O botao "Apagar meus dados" limpa a sessao na hora.
+- O botao "Apagar meus dados" limpa a sessao na hora (aparece so no site).
 - Os dados ficam apenas na aba do navegador e somem ao recarregar a pagina.
 - A chave da Groq e unica para todos os visitantes; acompanhe o consumo em
   https://console.groq.com.
