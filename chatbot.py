@@ -43,6 +43,7 @@ def imprimir_resumo(mes, ano):
 
 
 def main():
+    db.inicializar()
     hoje = date.today()
     conversas = db.listar_conversas()
     conversa_id = conversas[0]["id"] if conversas else db.criar_conversa()

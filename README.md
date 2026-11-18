@@ -4,6 +4,9 @@ Chatbot de gestão financeira com IA. Registra gastos por conversa, mantém mem�
 permanente, monta a tabela mensal de despesas e consulta informações atuais do
 mercado na internet.
 
+Quando publicado na internet, cada visitante recebe um cofre vazio e exclusivo:
+ninguém vê os gastos, as memórias ou as conversas de outra pessoa.
+
 ## Recursos
 
 - **Agente financeiro**: responde sobre mercado, investimentos, orçamento e uso do dinheiro.
@@ -15,6 +18,7 @@ mercado na internet.
 - **Acesso à internet**: pesquisa notícias, cotações e indicadores em tempo real e cita as fontes.
 - **Interface escura estilo Apple**: degradês em preto, cinza e branco, responsiva para celular, sem emojis.
 - **Duas versões**: interface web (Streamlit) e terminal.
+- **Privacidade por sessão**: no site, cada aba do navegador trabalha com um banco próprio e vazio.
 
 ## Requisitos
 
@@ -79,48 +83,33 @@ No VS Code, pressione **F5** e escolha **Interface Streamlit** ou
 
 ## Publicar na internet
 
-O Streamlit não roda no Vercel. O Vercel executa apenas funções curtas que
-exportam `app`, `application` ou `handler` (WSGI/ASGI), e encerra o processo ao
-fim de cada requisição. O Streamlit precisa de um servidor Python permanente,
-com conexão WebSocket aberta e estado por sessão. Por isso o erro
-`PYTHON_ENTRYPOINT_NOT_FOUND` aparece: não existe um objeto `app` para exportar.
+O Streamlit não roda em hospedagem de arquivos estáticos nem em funções
+serverless curtas. Ele precisa de um servidor Python permanente, com conexão
+WebSocket aberta e estado por sessão. As duas opções abaixo atendem a esse
+requisito.
 
-### Vercel (versão nativa, sem Python)
+Antes de publicar, confirme que o repositório **não** contém `.env` nem
+`edith.db`. O `.gitignore` já bloqueia os dois.
 
-A pasta `vercel/` contém uma versão feita para o Vercel: interface estática
-(`index.html`, `styles.css`, `app.js`) e uma função serverless
-(`api/chat.js`) que chama a Groq e executa as mesmas ferramentas.
+### Streamlit Community Cloud (recomendado)
 
-O caminho mais rápido:
-
-```powershell
-cd vercel
-npx vercel
-npx vercel env add GROQ_API_KEY production
-npx vercel --prod
-```
-
-No primeiro comando, aceite criar o projeto. No segundo, cole a chave da Groq
-quando for solicitado. O guia completo está em `vercel/README.md`.
-
-Nessa versão, conversas, gastos e memórias ficam no `localStorage` do
-navegador, porque funções serverless não mantêm disco. Para usar os mesmos
-dados em vários dispositivos, será necessário um banco externo.
-
-### Streamlit Community Cloud (para o app Python)
-
-1. Envie o projeto para um repositório no GitHub, sem `.env`, `.venv` e `edith.db`.
+1. Envie o projeto para um repositório no GitHub. O repositório usado por este
+   projeto é `Gabriel-web-code/EDITH-Assistente-Financeira`.
 2. Acesse https://share.streamlit.io e clique em **New app**.
-3. Escolha o repositório, a branch e o arquivo `app.py`.
+3. Escolha o repositório, a branch `main` e o arquivo `app.py`.
 4. Em **Advanced settings > Secrets**, cole:
 
 ```toml
 GROQ_API_KEY = "sua-chave-da-groq"
 ```
 
-5. Clique em **Deploy**.
+5. Clique em **Deploy**. O endereço fica no formato
+   `https://seu-app.streamlit.app`.
 
-### Render (para o app Python, com o `render.yaml` já incluído)
+O plano gratuito hiberna o app depois de um período sem visitas. A primeira
+abertura seguinte demora alguns segundos.
+
+### Render (alternativa, com o `render.yaml` já incluído)
 
 1. Envie o projeto para o GitHub.
 2. Acesse https://render.com, clique em **New > Web Service** e conecte o repositório.
@@ -130,10 +119,28 @@ GROQ_API_KEY = "sua-chave-da-groq"
 O plano gratuito do Render hiberna após alguns minutos sem acesso; a primeira
 abertura seguinte demora cerca de um minuto.
 
-**Atenção aos dados**: no app Python hospedado, o arquivo `edith.db` fica em um
-disco temporário. Gastos, memórias e conversas podem ser apagados quando o app
-for reiniciado ou atualizado. Para uso real, mantenha os dados no seu computador
-ou migre o banco para um serviço externo, como Postgres ou Turso.
+## Como cada visitante fica isolado
+
+O arquivo `sessao.py` resolve o problema de o site abrir com os dados do dono:
+
+1. Na primeira visita, o app cria uma pasta temporária exclusiva
+   (`edith_cofre_...`) e um `edith.db` vazio dentro dela.
+2. O caminho fica em `st.session_state`, que é individual por aba do navegador.
+3. O `db.py` guarda esse caminho em uma variável de thread. Cada sessão do
+   Streamlit roda em uma thread própria, então uma pessoa nunca lê o banco da outra.
+4. O `edith.db` que está na pasta do projeto não é aberto pelo site. Ele serve
+   apenas para o uso local, no seu computador.
+5. Ao clicar em **Apagar meus dados**, a pasta da sessão é removida e um cofre
+   novo e vazio é criado na hora.
+6. Pastas de sessões encerradas há mais de 12 horas são apagadas automaticamente.
+
+Consequências práticas:
+
+- Cada visitante começa com total zerado, nenhuma memória e uma conversa em branco.
+- Ao recarregar a página ou abrir em outra aba, começa um cofre novo. Os dados
+  ficam apenas na aba em que foram criados.
+- O servidor não guarda nada de forma permanente: reiniciar o app também apaga
+  os cofres temporários.
 
 ## Exemplos de uso
 
@@ -148,7 +155,7 @@ ou migre o banco para um serviço externo, como Postgres ou Turso.
 
 ## Onde ficam os dados
 
-Tudo é salvo localmente no arquivo `edith.db`, no formato SQLite:
+Tudo é salvo em um arquivo SQLite:
 
 | Tabela | Conteúdo |
 | --- | --- |
@@ -157,16 +164,21 @@ Tudo é salvo localmente no arquivo `edith.db`, no formato SQLite:
 | `gastos` | Despesas com descrição, valor, categoria e data |
 | `memorias` | Fatos permanentes informados por você |
 
-Para fazer backup, copie o arquivo `edith.db`. Para começar do zero, apague o
-arquivo ou use os botões do painel. O arquivo não vai para o Git.
+No seu computador, o arquivo é `edith.db`, na pasta do projeto. Para fazer
+backup, copie esse arquivo. Para começar do zero, apague o arquivo ou use os
+botões do painel. Ele não vai para o Git.
+
+No site, o arquivo fica em uma pasta temporária do servidor, uma por aba, e é
+descartado quando a sessão termina. Nada é compartilhado entre visitantes.
 
 ## Como funciona
 
 1. `agent.py` monta o prompt fixo da EDITH com a data atual e as memórias salvas.
 2. O modelo recebe ferramentas e decide quando usá-las.
 3. `db.py` grava e consulta gastos, mensagens e memórias no SQLite.
-4. `web.py` pesquisa na internet e lê páginas quando o modelo pede dados atuais.
-5. `app.py` desenha a interface e salva cada mensagem no banco.
+4. `sessao.py` cria o cofre temporário e exclusivo de cada visitante.
+5. `web.py` pesquisa na internet e lê páginas quando o modelo pede dados atuais.
+6. `app.py` desenha a interface e salva cada mensagem no banco.
 
 As ferramentas disponíveis para o agente são: `registrar_gasto`, `listar_gastos`,
 `resumo_mensal`, `excluir_gasto`, `salvar_memoria`, `pesquisar_web` e
@@ -177,6 +189,7 @@ As ferramentas disponíveis para o agente são: `registrar_gasto`, `listar_gasto
 | Arquivo | Função |
 | --- | --- |
 | `app.py` | Interface web com o painel financeiro |
+| `sessao.py` | Cofre temporário e exclusivo de cada visitante |
 | `chatbot.py` | Versão de terminal |
 | `agent.py` | Cérebro do agente, prompt e ferramentas |
 | `db.py` | Banco de dados SQLite |
@@ -184,8 +197,10 @@ As ferramentas disponíveis para o agente são: `registrar_gasto`, `listar_gasto
 | `requirements.txt` | Dependências |
 | `.env` | Chave da API, não compartilhar |
 | `.env.example` | Modelo do `.env` |
-| `edith.db` | Dados locais, gerado automaticamente |
+| `edith.db` | Dados locais, gerado automaticamente e ignorado pelo Git |
 | `.streamlit/config.toml` | Tema escuro base da interface |
+| `.streamlit/secrets.toml.example` | Modelo dos segredos da hospedagem |
+| `render.yaml` | Configuração pronta para publicar no Render |
 | `iniciar.bat` | Instala e roda no Windows com dois cliques |
 | `.vscode/launch.json` | Atalhos F5 |
 
@@ -193,16 +208,22 @@ As ferramentas disponíveis para o agente são: `registrar_gasto`, `listar_gasto
 
 | Erro | Solução |
 | --- | --- |
-| `401 Invalid API Key` | Gere outra chave em https://console.groq.com/keys e atualize o `.env` |
+| `401 Invalid API Key` | Gere outra chave em https://console.groq.com/keys e atualize o `.env` ou o segredo do app |
 | `429 Rate limit` | Aguarde alguns segundos e tente novamente |
 | `ModuleNotFoundError` | Ative o `.venv` e rode `pip install -r requirements.txt` |
+| App do site sem chave | Confira o segredo `GROQ_API_KEY` nas configurações da hospedagem |
 | Busca sem resultados | A fonte pode ter bloqueado a consulta; tente reformular o pedido |
 | Resposta sem dados atuais | Peça explicitamente para pesquisar na internet |
 
 ## Privacidade
 
 - A chave em `.env` dá acesso à sua conta na Groq. Não compartilhe o arquivo.
-- `edith.db` contém seus gastos e memórias. Também não deve ser compartilhado.
+- `edith.db` contém seus gastos e memórias. Também não deve ser compartilhado e
+  nunca é enviado ao GitHub.
+- No site publicado, cada visitante usa um banco temporário e vazio. O seu banco
+  local jamais é lido pelo app hospedado.
 - As mensagens são processadas pela Groq e as buscas são enviadas ao provedor de pesquisa.
+- A chave da Groq é a mesma para todos os visitantes do site. Por isso, acompanhe
+  o consumo e os limites da sua conta em https://console.groq.com.
 
 > As análises financeiras têm caráter educativo e não constituem recomendação formal de investimento.

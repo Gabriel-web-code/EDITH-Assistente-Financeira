@@ -1,13 +1,30 @@
 import os
 import sqlite3
+import threading
 from datetime import date
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-CAMINHO_BANCO = os.getenv("EDITH_DB") or os.path.join(BASE, "edith.db")
+CAMINHO_PADRAO = os.getenv("EDITH_DB") or os.path.join(BASE, "edith.db")
+
+# Cada sessão do Streamlit roda em uma thread própria. Guardar o caminho do
+# banco na thread impede que um visitante leia os dados de outro.
+_estado = threading.local()
+
+
+def caminho_banco():
+    return getattr(_estado, "caminho", CAMINHO_PADRAO)
+
+
+def usar_banco(caminho):
+    """Aponta as operações desta sessão para um arquivo SQLite próprio."""
+    if not caminho:
+        raise ValueError("Caminho de banco inválido.")
+    _estado.caminho = os.path.abspath(caminho)
+    return _estado.caminho
 
 
 def conectar():
-    conexao = sqlite3.connect(CAMINHO_BANCO)
+    conexao = sqlite3.connect(caminho_banco())
     conexao.row_factory = sqlite3.Row
     return conexao
 
@@ -232,6 +249,3 @@ def excluir_memoria(memoria_id):
 
 def limpar_memorias():
     _gravar("DELETE FROM memorias")
-
-
-inicializar()

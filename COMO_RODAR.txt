@@ -85,6 +85,7 @@ O QUE O EDITH FAZ
 - Mantem personalidade fixa de assistente financeira seria e objetiva.
 - Guarda varias conversas separadas, com historico no painel lateral.
 - Tem interface escura no estilo Apple, responsiva para celular.
+- No site publicado, cada visitante recebe um cofre vazio e exclusivo.
 
 
 EXEMPLOS DE PEDIDOS
@@ -101,7 +102,8 @@ EXEMPLOS DE PEDIDOS
 
 ONDE FICAM OS DADOS
 -------------------
-Tudo fica no arquivo edith.db, criado automaticamente na pasta do projeto:
+No seu computador, tudo fica no arquivo edith.db, criado automaticamente
+na pasta do projeto:
 
 - mensagens: historico completo da conversa
 - gastos: descricao, valor, categoria e data de cada despesa
@@ -110,6 +112,11 @@ Tudo fica no arquivo edith.db, criado automaticamente na pasta do projeto:
 Para fazer backup, copie o arquivo edith.db.
 Para comecar do zero, apague o arquivo ou use os botoes do painel.
 Nao compartilhe o edith.db: ele contem seus dados financeiros.
+
+No site publicado, o edith.db do projeto NAO e usado. Cada aba do navegador
+cria uma pasta temporaria propria, com um banco vazio, gerenciada pelo
+arquivo sessao.py. Ao fechar ou recarregar a pagina, esse banco e descartado.
+Assim, nenhum visitante ve os gastos, as memorias ou as conversas de outro.
 
 
 VS CODE
@@ -133,13 +140,13 @@ ARQUIVOS DO PROJETO
 -------------------
 - iniciar.bat        Atalho para instalar e rodar no Windows
 - app.py             Interface web com painel financeiro
+- sessao.py          Cofre temporario e exclusivo de cada visitante
 - chatbot.py         Versao de terminal
 - agent.py           Cerebro do agente, prompt e ferramentas
 - db.py              Banco de dados SQLite
 - web.py             Busca na internet e leitura de paginas
 - requirements.txt   Dependencias do projeto
 - render.yaml        Configuracao pronta para publicar no Render
-- vercel/            Versao nativa para publicar no Vercel
 - .env               Sua chave da API (NAO compartilhe)
 - .env.example       Modelo do .env, sem a chave real
 - README.md          Manual completo
@@ -148,35 +155,28 @@ ARQUIVOS DO PROJETO
 
 PUBLICAR NA INTERNET
 --------------------
-O Vercel nao executa Streamlit. Ele espera uma aplicacao WSGI/ASGI com uma
-variavel "app", "application" ou "handler", e encerra o processo a cada
-requisicao. O Streamlit precisa de um servidor Python permanente com WebSocket.
+O Streamlit precisa de um servidor Python permanente, com WebSocket aberto.
+Nao funciona em hospedagem de arquivos estaticos nem em funcoes serverless
+curtas. Antes de publicar, confirme que o repositorio nao tem .env nem
+edith.db; o .gitignore ja bloqueia os dois.
 
-1) Vercel (versao nativa, sem Python)
-   A pasta vercel/ tem interface estatica e uma funcao serverless prontas.
-   No terminal:
-
-      cd vercel
-      npx vercel
-      npx vercel env add GROQ_API_KEY production
-      npx vercel --prod
-
-   Cole a chave da Groq quando o comando pedir. Guia completo em
-   vercel/README.md. Nessa versao, os dados ficam no navegador (localStorage).
-
-2) Streamlit Community Cloud (para o app Python)
-   - Suba o projeto no GitHub sem .env, .venv e edith.db.
+1) Streamlit Community Cloud (recomendado)
+   - Suba o projeto no GitHub (repositorio ja criado:
+     Gabriel-web-code/EDITH-Assistente-Financeira).
    - Acesse https://share.streamlit.io, clique em New app e escolha o app.py.
    - Em Advanced settings > Secrets, informe:
         GROQ_API_KEY = "sua-chave-da-groq"
    - Clique em Deploy.
 
-3) Render (para o app Python)
+2) Render (alternativa)
    - Suba o projeto no GitHub.
    - Acesse https://render.com, New > Web Service e conecte o repositorio.
    - O arquivo render.yaml ja traz o comando de inicializacao.
    - Em Environment, crie GROQ_API_KEY com a sua chave.
 
-No app Python hospedado, o edith.db fica em disco temporario: os dados podem
-ser apagados quando o app reiniciar. Para uso real, mantenha os dados no seu
-computador.
+Privacidade no site:
+- Cada visitante abre com banco vazio (sem gastos, memorias ou conversas).
+- O botao "Apagar meus dados" limpa a sessao na hora.
+- Os dados ficam apenas na aba do navegador e somem ao recarregar a pagina.
+- A chave da Groq e unica para todos os visitantes; acompanhe o consumo em
+  https://console.groq.com.

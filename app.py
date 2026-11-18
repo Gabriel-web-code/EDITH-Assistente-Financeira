@@ -7,6 +7,7 @@ from groq import APIError
 
 import agent
 import db
+import sessao
 
 load_dotenv()
 
@@ -549,6 +550,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+sessao.banco_da_sessao()
+
 st.markdown(CSS, unsafe_allow_html=True)
 
 hoje = date.today()
@@ -635,6 +638,7 @@ if pergunta:
 with st.sidebar:
     st.markdown('<div class="marca">EDITH</div>', unsafe_allow_html=True)
     st.markdown('<div class="marca-sub">Painel financeiro</div>', unsafe_allow_html=True)
+    st.caption("Sessão privada: seus lançamentos, memórias e conversas ficam apenas nesta aba.")
 
     st.markdown('<div class="secao">Histórico</div>', unsafe_allow_html=True)
 
@@ -724,4 +728,13 @@ with st.sidebar:
 
         if st.button("Limpar memórias", width="stretch"):
             db.limpar_memorias()
+            st.rerun()
+
+        if st.button(
+            "Apagar meus dados",
+            width="stretch",
+            help="Remove desta sessão as conversas, os gastos e as memórias.",
+        ):
+            sessao.apagar_banco_da_sessao()
+            st.session_state.pop("conversa_id", None)
             st.rerun()
