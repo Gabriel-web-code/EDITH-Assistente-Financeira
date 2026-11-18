@@ -9,7 +9,7 @@ import html
 import re
 import unicodedata
 
-_SEPARADOR = re.compile(r"^:?-{2,}:?$")
+_SEPARADOR = re.compile(r"^:?-+:?$")
 _NEGRITO = re.compile(r"\*\*(.+?)\*\*")
 _CODIGO = re.compile(r"`([^`]+)`")
 
