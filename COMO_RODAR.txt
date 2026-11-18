@@ -64,6 +64,13 @@ Se o comando streamlit nao for reconhecido, use o caminho completo:
 
 O navegador abre em http://localhost:8501. Para encerrar, use Ctrl+C.
 
+Observacao: o comando manual "streamlit run app.py" abre um cofre temporario,
+igual ao site, e os dados somem ao recarregar. Para usar o edith.db da pasta do
+projeto e manter os dados, rode pelo iniciar.bat (ele define EDITH_LOCAL=1) ou
+defina a variavel antes de iniciar:
+
+   $env:EDITH_LOCAL="1"; streamlit run app.py
+
 
 INSTALACAO (LINUX / MACOS)
 --------------------------
@@ -118,9 +125,10 @@ cria uma pasta temporaria propria, com um banco vazio, gerenciada pelo
 arquivo sessao.py. Ao fechar ou recarregar a pagina, esse banco e descartado.
 Assim, nenhum visitante ve os gastos, as memorias ou as conversas de outro.
 
-No seu computador (endereco localhost), nada muda: o app continua usando o
-edith.db da pasta do projeto. Para forcar esse comportamento em outro
-endereco, defina EDITH_LOCAL=1 antes de iniciar o app.
+No seu computador, rodando pelo iniciar.bat, nada muda: o app continua usando
+o edith.db da pasta do projeto. Sem o iniciar.bat, o app abre um cofre
+temporario igual ao do site; nesse caso, defina EDITH_LOCAL=1 para voltar ao
+edith.db.
 
 
 VS CODE

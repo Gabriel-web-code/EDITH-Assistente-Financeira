@@ -1,5 +1,6 @@
 @echo off
 cd /d "%~dp0"
+set EDITH_LOCAL=1
 if not exist ".venv\Scripts\python.exe" (
     echo Criando ambiente virtual...
     python -m venv .venv

@@ -72,6 +72,14 @@ streamlit run app.py
 
 O navegador abre em http://localhost:8501.
 
+O comando manual acima abre um cofre temporário, igual ao site. Para usar o
+`edith.db` da pasta do projeto e manter os dados, rode pelo `iniciar.bat` ou
+defina a variável antes:
+
+```powershell
+$env:EDITH_LOCAL="1"; streamlit run app.py
+```
+
 Versão de terminal:
 
 ```powershell
@@ -123,13 +131,14 @@ abertura seguinte demora cerca de um minuto.
 
 O arquivo `sessao.py` resolve o problema de o site abrir com os dados do dono:
 
-1. Ao abrir o app por um endereço que não seja `localhost`, ele cria uma pasta
-   temporária exclusiva (`edith_cofre_...`) com um `edith.db` vazio dentro.
+1. Sem a variável `EDITH_LOCAL`, o app cria uma pasta temporária exclusiva
+   (`edith_cofre_...`) com um `edith.db` vazio dentro.
 2. O caminho fica em `st.session_state`, que é individual por aba do navegador.
 3. O `db.py` guarda esse caminho em uma variável de thread. Cada sessão do
    Streamlit roda em uma thread própria, então uma pessoa nunca lê o banco da outra.
-4. O `edith.db` que está na pasta do projeto só é usado quando o app roda na
-   sua própria máquina (`localhost`). No site, ele jamais é aberto.
+4. O `edith.db` que está na pasta do projeto só é usado quando o app é iniciado
+   pelo `iniciar.bat` (que define `EDITH_LOCAL=1`) ou com `EDITH_DB` apontando
+   para ele. No site, ele jamais é aberto.
 5. Ao clicar em **Apagar meus dados** (botão que só aparece no site), a pasta da
    sessão é removida e um cofre novo e vazio é criado na hora.
 6. Pastas de sessões encerradas há mais de 12 horas são apagadas automaticamente.
@@ -141,9 +150,9 @@ Consequências práticas:
   ficam apenas na aba em que foram criados.
 - O servidor não guarda nada de forma permanente: reiniciar o app também apaga
   os cofres temporários.
-- No seu computador, nada muda: o `edith.db` continua guardando seus dados entre
-  execuções. Se precisar forçar esse modo em outro endereço, defina a variável
-  `EDITH_LOCAL=1` antes de iniciar o app.
+- No seu computador, rode pelo `iniciar.bat` para continuar usando o `edith.db`
+  e manter os dados entre execuções. Se preferir o comando manual, defina a
+  variável antes de iniciar: `$env:EDITH_LOCAL="1"` no PowerShell.
 
 ## Exemplos de uso
 

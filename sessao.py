@@ -5,8 +5,8 @@ pasta temporária e ligado apenas àquela sessão do Streamlit. O `edith.db` do
 repositório nunca é aberto, então o site sempre começa vazio e cada pessoa
 constrói os próprios gastos, memórias e conversas.
 
-No seu computador (localhost) o comportamento continua o de sempre: o app usa
-o `edith.db` da pasta do projeto e os dados sobrevivem ao fechar o navegador.
+No seu computador, rode pelo `iniciar.bat` (ou defina `EDITH_LOCAL=1`) para
+usar o `edith.db` da pasta do projeto e manter os dados entre execuções.
 """
 
 import os
@@ -22,32 +22,17 @@ PREFIXO = "edith_cofre_"
 VALIDADE_SEGUNDOS = 12 * 60 * 60
 CHAVE = "edith_banco"
 CHAVE_MODO = "edith_modo_local"
-HOSTS_LOCAIS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
-
-
-def _host_da_requisicao():
-    try:
-        host = st.context.headers.get("Host", "") or ""
-    except Exception:
-        return ""
-    host = host.strip().lower()
-    if host.startswith("["):
-        return host[1 : host.find("]")] if "]" in host else host
-    return host.split(":")[0]
 
 
 def _detectar_modo_local():
     if os.getenv("EDITH_DB"):
         return True
-    if os.getenv("EDITH_LOCAL", "").strip().lower() in {"1", "true", "sim", "yes"}:
-        return True
-    # Sem cabeçalho de requisição (testes, chamadas internas), assume o modo
-    # seguro: banco temporário por sessão.
-    return _host_da_requisicao() in HOSTS_LOCAIS
+    valor = os.getenv("EDITH_LOCAL", "").strip().lower()
+    return valor in {"1", "true", "sim", "yes"}
 
 
 def modo_local():
-    """True quando o app roda na própria máquina do dono."""
+    """True quando o app foi iniciado para usar o banco do próprio computador."""
     if CHAVE_MODO not in st.session_state:
         st.session_state[CHAVE_MODO] = _detectar_modo_local()
     return bool(st.session_state[CHAVE_MODO])
